@@ -1,65 +1,60 @@
-import Image from "next/image";
+'use client';
+import { useEffect, useState } from 'react';
 
-export default function Home() {
+function KpiCards() {
+  const [k,setK]=useState<any>(null);
+  useEffect(()=>{ fetch('/api/kpis').then(r=>r.json()).then(j=>setK(j.data)); },[]);
+  if(!k) return null;
+  const f=(n:number)=>Number(n||0).toLocaleString();
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="grid sm:grid-cols-3 gap-3 mb-4">
+      <div className="p-4 bg-white rounded shadow"><div className="text-sm text-gray-500">Caja</div><div className="text-2xl font-bold">${f(k.caja_actual)}</div></div>
+      <div className="p-4 bg-white rounded shadow"><div className="text-sm text-gray-500">Capital</div><div className="text-2xl font-bold">${f(k.capital)}</div></div>
+      <div className="p-4 bg-white rounded shadow"><div className="text-sm text-gray-500">Utilidad</div><div className="text-2xl font-bold">${f(k.utilidad)}</div></div>
+    </div>
+  );
+}
+
+export default function Page(){
+  const [items,setItems]=useState<any[]>([]);
+  const [form,setForm]=useState({tipo:'compra',monto:'',descripcion:''});
+  const load=()=>fetch('/api/movimientos').then(r=>r.json()).then(j=>setItems(j.data||[]));
+  useEffect(()=>{ load(); },[]);
+  async function submit(e:any){
+    e.preventDefault();
+    const res=await fetch('/api/movimientos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...form,monto:+form.monto})});
+    if(res.ok){ setForm({tipo:'compra',monto:'',descripcion:''}); load(); } else { alert('Error'); }
+  }
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">Finanzas — FlipCams</h1>
+      <KpiCards />
+      <form onSubmit={submit} className="p-4 bg-white rounded border grid sm:grid-cols-4 gap-3 mb-4">
+        <select className="border p-2 rounded" value={form.tipo} onChange={e=>setForm(f=>({...f,tipo:e.target.value}))}>
+          <option value="capital">Capital</option><option value="compra">Compra</option>
+          <option value="venta">Venta</option><option value="gasto">Gasto</option><option value="retiro">Retiro</option>
+        </select>
+        <input className="border p-2 rounded" type="number" placeholder="Monto" value={form.monto} onChange={e=>setForm(f=>({...f,monto:e.target.value}))}/>
+        <input className="border p-2 rounded" placeholder="Descripción" value={form.descripcion} onChange={e=>setForm(f=>({...f,descripcion:e.target.value}))}/>
+        <button className="bg-blue-600 text-white rounded px-4">Agregar</button>
+      </form>
+      <div className="bg-white rounded shadow overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="bg-gray-50">
+            <th className="p-2 text-left">Fecha</th><th className="p-2 text-left">Tipo</th><th className="p-2 text-left">Descripción</th><th className="p-2 text-right">Monto</th>
+          </tr></thead>
+          <tbody>
+            {items.map(m=>(
+              <tr key={m.id} className="border-t">
+                <td className="p-2">{new Date(m.fecha).toLocaleDateString()}</td>
+                <td className="p-2 capitalize">{m.tipo}</td>
+                <td className="p-2">{m.descripcion||'—'}</td>
+                <td className="p-2 text-right">${Number(m.monto).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
