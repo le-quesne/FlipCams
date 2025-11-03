@@ -1,8 +1,9 @@
-// middleware.ts (en la raíz)
-import { NextResponse, type NextRequest } from 'next/server';
+// middleware.ts
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function middleware(_req: NextRequest) {
-  // solo deja pasar la request
+export function middleware(_req: NextRequest) {
+  // deja pasar todas las requests
   return NextResponse.next();
 }
 

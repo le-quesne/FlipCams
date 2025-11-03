@@ -30,11 +30,11 @@ function KpiCards({ data }: { data: KpiData | null }) {
       ].map((it) => (
         <div
           key={it.label}
-          className="relative overflow-hidden rounded-2xl bg-white/60 backdrop-blur-md border border-white/30 p-5 shadow-lg"
+          className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-md border border-white/30 dark:border-white/10 p-5 shadow-lg"
         >
-          <div className="text-xs text-gray-500 uppercase tracking-wide">{it.label}</div>
-          <div className="mt-2 text-3xl font-extrabold text-gray-900">${f(it.value)}</div>
-          <div className="absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br from-blue-200/30 to-transparent rounded-full opacity-60 pointer-events-none" />
+          <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{it.label}</div>
+          <div className="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">${f(it.value)}</div>
+          <div className="absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br from-blue-200/30 dark:from-blue-400/10 to-transparent rounded-full opacity-60 pointer-events-none" />
         </div>
       ))}
     </div>
@@ -56,6 +56,28 @@ export default function Page() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ tipo: "compra", monto: "", descripcion: "" });
   const [editRecord, setEditRecord] = useState<Movimiento | null>(null);
+
+  // Auto-aplica modo oscuro si el sistema lo prefiere (útil si Tailwind está configurado con 'class')
+  useEffect(() => {
+    try {
+      const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+      if (!mq) return;
+      const root = document.documentElement;
+      const apply = () => {
+        if (mq.matches) root.classList.add('dark');
+        else root.classList.remove('dark');
+      };
+      apply();
+      if (mq.addEventListener) mq.addEventListener('change', apply);
+      else if ((mq as any).addListener) (mq as any).addListener(apply);
+      return () => {
+        if (mq.removeEventListener) mq.removeEventListener('change', apply);
+        else if ((mq as any).removeListener) (mq as any).removeListener(apply);
+      };
+    } catch (e) {
+      // no-op
+    }
+  }, []);
 
   const load = async () => {
     try {
@@ -221,17 +243,17 @@ export default function Page() {
   if (checkingAuth) return null;
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <header className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl md:text-4xl font-extralight text-gray-900">Finanzas</h1>
-            <p className="mt-1 text-gray-500">Controla la caja y los movimientos — FlipCams</p>
+            <h1 className="text-3xl md:text-4xl font-extralight text-gray-900 dark:text-white">Finanzas</h1>
+            <p className="mt-1 text-gray-500 dark:text-gray-400">Controla la caja y los movimientos — FlipCams</p>
           </div>
           <div className="flex items-center gap-3">
             <span
               className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
-                loggedIn ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                loggedIn ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300"
               }`}
             >
               <span
@@ -242,7 +264,7 @@ export default function Page() {
             {loggedIn ? (
               <button
                 onClick={signOut}
-                className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                className="rounded-full border border-gray-200 dark:border-white/10 px-3 py-1 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5"
               >
                 Salir
               </button>
@@ -256,12 +278,12 @@ export default function Page() {
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
         <form
           onSubmit={submit}
-          className="lg:col-span-1 p-4 rounded-2xl bg-white/60 backdrop-blur-md border border-white/30 shadow-lg"
+          className="lg:col-span-1 p-4 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-lg"
         >
           <div className="flex flex-col space-y-3">
             <label className="text-xs text-gray-500 uppercase">Tipo</label>
             <select
-              className="p-3 rounded-xl border border-gray-200 bg-white"
+              className="p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/60 text-gray-900 dark:text-gray-100"
               value={form.tipo}
               onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}
             >
@@ -274,8 +296,11 @@ export default function Page() {
 
             <label className="text-xs text-gray-500 uppercase">Monto</label>
             <input
-              className="p-3 rounded-xl border border-gray-200 bg-white"
+              className="p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/60 text-gray-900 dark:text-gray-100"
               type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
               placeholder="0.00"
               value={form.monto}
               onChange={(e) => setForm((f) => ({ ...f, monto: e.target.value }))}
@@ -283,7 +308,7 @@ export default function Page() {
 
             <label className="text-xs text-gray-500 uppercase">Descripción</label>
             <input
-              className="p-3 rounded-xl border border-gray-200 bg-white"
+              className="p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/60 text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
               placeholder="Descripción opcional"
               value={form.descripcion}
               onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
@@ -296,34 +321,35 @@ export default function Page() {
         </form>
 
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow overflow-hidden">
+          {/* Desktop / tablet table */}
+          <div className="hidden md:block bg-white dark:bg-gray-900/60 rounded-2xl shadow overflow-hidden border border-gray-100 dark:border-white/10">
             <div className="p-4 border-b">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Movimientos recientes</h2>
-                <div className="text-sm text-gray-500">{items.length} items</div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Movimientos recientes</h2>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{items.length} items</div>
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50">
-                    <th className="p-3 text-left text-xs text-gray-500">Fecha</th>
-                    <th className="p-3 text-left text-xs text-gray-500">Tipo</th>
-                    <th className="p-3 text-left text-xs text-gray-500">Descripción</th>
-                    <th className="p-3 text-right text-xs text-gray-500">Monto</th>
-                    <th className="p-3 text-right text-xs text-gray-500">Acciones</th>
+                  <tr className="bg-gray-50 dark:bg-white/5">
+                    <th className="p-3 text-left text-xs text-gray-500 dark:text-gray-400">Fecha</th>
+                    <th className="p-3 text-left text-xs text-gray-500 dark:text-gray-400">Tipo</th>
+                    <th className="p-3 text-left text-xs text-gray-500 dark:text-gray-400">Descripción</th>
+                    <th className="p-3 text-right text-xs text-gray-500 dark:text-gray-400">Monto</th>
+                    <th className="p-3 text-right text-xs text-gray-500 dark:text-gray-400">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((m) => (
                     <tr
                       key={m.id}
-                      className={`border-t transition-colors ${editingId === m.id ? "bg-blue-50/40" : "hover:bg-gray-50"}`}
+                      className={`border-t border-gray-100 dark:border-white/10 transition-colors ${editingId === m.id ? "bg-blue-50/40 dark:bg-blue-500/10" : "hover:bg-gray-50 dark:hover:bg-white/5"}`}
                     >
-                      <td className="p-3 align-top text-gray-600">{new Date(m.fecha).toLocaleString()}</td>
-                      <td className="p-3 align-top capitalize font-medium text-gray-800">{m.tipo}</td>
-                      <td className="p-3 align-top text-gray-600">{m.descripcion || "—"}</td>
-                      <td className="p-3 align-top text-right font-semibold text-gray-900">${Number(m.monto).toLocaleString()}</td>
+                      <td className="p-3 align-top text-gray-600 dark:text-gray-300">{new Date(m.fecha).toLocaleString()}</td>
+                      <td className="p-3 align-top capitalize font-medium text-gray-800 dark:text-gray-100">{m.tipo}</td>
+                      <td className="p-3 align-top text-gray-600 dark:text-gray-300">{m.descripcion || "—"}</td>
+                      <td className="p-3 align-top text-right font-semibold text-gray-900 dark:text-gray-100">${Number(m.monto).toLocaleString()}</td>
                       <td className="p-3 align-top text-right">
                         <button
                           type="button"
@@ -337,7 +363,7 @@ export default function Page() {
                             });
                             setEditOpen(true);
                           }}
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                         >
                           Editar
                         </button>
@@ -347,6 +373,50 @@ export default function Page() {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Mobile list */}
+          <div className="md:hidden">
+            <div className="mb-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">Movimientos</h2>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{items.length} items</div>
+              </div>
+            </div>
+            <ul className="space-y-3">
+              {items.map((m) => (
+                <li key={m.id} className={`rounded-2xl bg-white dark:bg-gray-900/60 shadow border border-gray-100 dark:border-white/10 p-4 ${editingId === m.id ? "ring-2 ring-blue-200 dark:ring-blue-400/30" : ""}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(m.fecha).toLocaleString()}</div>
+                      <div className="mt-0.5 capitalize font-medium text-gray-800 dark:text-gray-100">{m.tipo}</div>
+                      <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">{m.descripcion || "—"}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-base font-semibold text-gray-900 dark:text-gray-100">${Number(m.monto).toLocaleString()}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(m.id);
+                        setEditRecord(m);
+                        setEditForm({
+                          tipo: m.tipo,
+                          monto: String(m.monto ?? ""),
+                          descripcion: m.descripcion ?? "",
+                        });
+                        setEditOpen(true);
+                      }}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
@@ -384,8 +454,11 @@ export default function Page() {
           <div>
             <label className="text-xs text-gray-500 uppercase">Monto</label>
             <input
-              className="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white"
+              className="mt-1 w-full p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/60 text-gray-900 dark:text-gray-100"
               type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
               placeholder="0.00"
               value={editForm.monto}
               onChange={(e) => setEditForm((f) => ({ ...f, monto: e.target.value }))}
@@ -394,7 +467,7 @@ export default function Page() {
           <div>
             <label className="text-xs text-gray-500 uppercase">Descripción</label>
             <input
-              className="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white"
+              className="mt-1 w-full p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/60 text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
               placeholder="Descripción opcional"
               value={editForm.descripcion}
               onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))}
@@ -405,7 +478,7 @@ export default function Page() {
             <button
               type="button"
               onClick={deleteMovimiento}
-              className="px-4 py-2 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 text-sm"
+              className="px-4 py-2 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/20 dark:hover:bg-red-500/20 text-sm"
             >
               Eliminar
             </button>
@@ -418,7 +491,7 @@ export default function Page() {
                   setEditingId(null);
                   setEditRecord(null);
                 }}
-                className="px-4 py-2 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
+                className="px-4 py-2 rounded-full border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 text-sm"
               >
                 Cancelar
               </button>
@@ -442,7 +515,7 @@ function Modal({ open, onClose, children }: { open: boolean; onClose: () => void
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md mx-auto rounded-2xl bg-white shadow-2xl border border-gray-100 p-6">
+      <div className="relative z-10 w-full max-w-md mx-auto rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-100 dark:border-white/10 p-6">
         {children}
       </div>
     </div>
