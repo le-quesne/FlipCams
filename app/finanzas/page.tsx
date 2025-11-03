@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import ProtectedPage from "@/components/ProtectedPage";
 import UserHeader from "@/components/UserHeader";
+import Toast from "@/components/Toast";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type Movimiento = {
   id: string;
@@ -43,7 +45,7 @@ function KpiCards({ data }: { data: KpiData | null }) {
   );
 }
 
-const INITIAL_FORM = { tipo: "compra", monto: "", descripcion: "" };
+const INITIAL_FORM = { tipo: "capital", monto: "", descripcion: "" };
 
 export default function Page() {
   const router = useRouter();
@@ -54,6 +56,9 @@ export default function Page() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ tipo: "compra", monto: "", descripcion: "" });
   const [editRecord, setEditRecord] = useState<Movimiento | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "warning" | "info" } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; onConfirm: () => void } | null>(null);
 
   const load = async () => {
     try {
@@ -95,38 +100,48 @@ export default function Page() {
 
   async function submit(e: any) {
     e.preventDefault();
+    if (isSubmitting) return; // Prevenir doble clic
+    
     const montoNumber = Number(form.monto);
     if (!Number.isFinite(montoNumber) || montoNumber <= 0) {
-      return alert("Ingresa un monto válido");
-    }
-
-    const payload = {
-      tipo: form.tipo,
-      monto: montoNumber,
-      descripcion: form.descripcion.trim() ? form.descripcion.trim() : null,
-    };
-
-    const endpoint = "/api/movimientos";
-    const method = editingId ? "PUT" : "POST";
-    const body = editingId ? { id: editingId, ...payload } : payload;
-
-    const res = await fetch(endpoint, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(body),
-    });
-    if (res.status === 401 || res.status === 403) {
-      router.replace("/login");
+      setToast({ message: "Ingresa un monto válido", type: "error" });
       return;
     }
-    if (res.ok) {
-      setForm({ ...INITIAL_FORM });
-      setEditingId(null);
-      await refreshData();
-    } else {
-      const err = await res.json().catch(() => ({ error: "Error" }));
-      alert(err.error || "Error al guardar");
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        tipo: form.tipo,
+        monto: montoNumber,
+        descripcion: form.descripcion.trim() ? form.descripcion.trim() : null,
+      };
+
+      const endpoint = "/api/movimientos";
+      const method = editingId ? "PUT" : "POST";
+      const body = editingId ? { id: editingId, ...payload } : payload;
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      if (res.status === 401 || res.status === 403) {
+        router.replace("/login");
+        return;
+      }
+      if (res.ok) {
+        setForm({ ...INITIAL_FORM });
+        setEditingId(null);
+        await refreshData();
+        setToast({ message: "Movimiento agregado exitosamente", type: "success" });
+      } else {
+        const err = await res.json().catch(() => ({ error: "Error" }));
+        setToast({ message: err.error || "Error al guardar", type: "error" });
+      }
+    } finally {
+      // Pequeño delay antes de permitir otro submit
+      setTimeout(() => setIsSubmitting(false), 500);
     }
   }
 
@@ -135,7 +150,8 @@ export default function Page() {
     if (!editingId) return;
     const montoNumber = Number(editForm.monto);
     if (!Number.isFinite(montoNumber) || montoNumber <= 0) {
-      return alert("Ingresa un monto válido");
+      setToast({ message: "Ingresa un monto válido", type: "error" });
+      return;
     }
     const body = {
       id: editingId,
@@ -155,36 +171,45 @@ export default function Page() {
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Error" }));
-      return alert(err.error || "Error al guardar cambios");
+      setToast({ message: err.error || "Error al guardar cambios", type: "error" });
+      return;
     }
     setEditOpen(false);
     setEditingId(null);
     setEditRecord(null);
     await refreshData();
+    setToast({ message: "Cambios guardados exitosamente", type: "success" });
   }
 
   async function deleteMovimiento() {
     if (!editingId) return;
-    const confirmed = window.confirm("¿Eliminar este movimiento? Esta acción no se puede deshacer.");
-    if (!confirmed) return;
-    const res = await fetch("/api/movimientos", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ id: editingId }),
+    
+    setConfirmDialog({
+      open: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        const res = await fetch("/api/movimientos", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ id: editingId }),
+        });
+        if (res.status === 401 || res.status === 403) {
+          router.replace("/login");
+          return;
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Error" }));
+          setToast({ message: err.error || "No se pudo eliminar", type: "error" });
+          return;
+        }
+        setEditOpen(false);
+        setEditingId(null);
+        setEditRecord(null);
+        await refreshData();
+        setToast({ message: "Movimiento eliminado exitosamente", type: "success" });
+      },
     });
-    if (res.status === 401 || res.status === 403) {
-      router.replace("/login");
-      return;
-    }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: "Error" }));
-      return alert(err.error || "No se pudo eliminar");
-    }
-    setEditOpen(false);
-    setEditingId(null);
-    setEditRecord(null);
-    await refreshData();
   }
 
   return (
@@ -216,11 +241,21 @@ export default function Page() {
               onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}
             >
               <option value="capital">Capital</option>
-              <option value="compra">Compra</option>
-              <option value="venta">Venta</option>
               <option value="gasto">Gasto</option>
               <option value="retiro">Retiro</option>
             </select>
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-500/10 dark:to-pink-500/10 border border-purple-100 dark:border-purple-500/20 p-2.5">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 w-4 h-4 rounded-full bg-purple-500 dark:bg-purple-400 flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-xs text-purple-800 dark:text-purple-200 leading-relaxed">
+                  Compra/Venta se registran automáticamente desde Inventario
+                </p>
+              </div>
+            </div>
 
             <label className="text-xs text-gray-500 uppercase">Monto</label>
             <input
@@ -229,7 +264,7 @@ export default function Page() {
               inputMode="decimal"
               step="0.01"
               min="0"
-              placeholder="0.00"
+              placeholder="$1000"
               value={form.monto}
               onChange={(e) => setForm((f) => ({ ...f, monto: e.target.value }))}
             />
@@ -242,8 +277,21 @@ export default function Page() {
               onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
             />
 
-            <button className="mt-2 w-full py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium shadow-md">
-              {editingId ? "Guardar cambios" : "Agregar movimiento"}
+            <button 
+              disabled={isSubmitting}
+              className="mt-2 w-full py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Guardando...
+                </span>
+              ) : (
+                editingId ? "Guardar cambios" : "Agregar movimiento"
+              )}
             </button>
           </div>
         </form>
@@ -291,8 +339,11 @@ export default function Page() {
                             });
                             setEditOpen(true);
                           }}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-medium shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105"
                         >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
                           Editar
                         </button>
                       </td>
@@ -337,8 +388,11 @@ export default function Page() {
                         });
                         setEditOpen(true);
                       }}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-medium shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105"
                     >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
                       Editar
                     </button>
                   </div>
@@ -368,13 +422,11 @@ export default function Page() {
           <div>
             <label className="text-xs text-gray-500 uppercase">Tipo</label>
             <select
-              className="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white"
+              className="mt-1 w-full p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/60 text-gray-900 dark:text-gray-100"
               value={editForm.tipo}
               onChange={(e) => setEditForm((f) => ({ ...f, tipo: e.target.value }))}
             >
               <option value="capital">Capital</option>
-              <option value="compra">Compra</option>
-              <option value="venta">Venta</option>
               <option value="gasto">Gasto</option>
               <option value="retiro">Retiro</option>
             </select>
@@ -387,7 +439,7 @@ export default function Page() {
               inputMode="decimal"
               step="0.01"
               min="0"
-              placeholder="0.00"
+              placeholder="$1000"
               value={editForm.monto}
               onChange={(e) => setEditForm((f) => ({ ...f, monto: e.target.value }))}
             />
@@ -433,6 +485,27 @@ export default function Page() {
           </div>
         </form>
       </Modal>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          open={confirmDialog.open}
+          title="Confirmar eliminación"
+          message="¿Estás seguro de que deseas eliminar este movimiento? Esta acción no se puede deshacer."
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          type="danger"
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
       </div>
     </ProtectedPage>
   );
