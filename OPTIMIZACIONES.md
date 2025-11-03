@@ -1,4 +1,4 @@
-# Optimizaciones de Rendimiento - FlipCams
+# Optimizaciones de Rendimiento - South Sensor Cams
 
 ## Problema
 La aplicación se demoraba mucho al cambiar entre las páginas de Finanzas e Inventario debido a que cada página verificaba la autenticación del usuario independientemente, causando retrasos en la carga.

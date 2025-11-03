@@ -1,4 +1,4 @@
--- Tabla de inventario para FlipCams
+-- Tabla de inventario para South Sensor Cams
 -- Ejecuta este SQL en tu panel de Supabase (SQL Editor)
 
 CREATE TABLE IF NOT EXISTS inventario (

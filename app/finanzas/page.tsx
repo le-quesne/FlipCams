@@ -274,7 +274,7 @@ export default function Page() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="text-3xl md:text-4xl font-extralight text-gray-900 dark:text-white">Finanzas</h1>
-              <p className="mt-1 text-gray-500 dark:text-gray-400">Controla la caja y los movimientos — FlipCams</p>
+              <p className="mt-1 text-gray-500 dark:text-gray-400">Controla la caja y los movimientos — South Sensor Cams</p>
             </div>
             <UserHeader />
           </div>
@@ -376,7 +376,15 @@ export default function Page() {
                       key={m.id}
                       className={`border-t border-gray-100 dark:border-white/10 transition-colors ${editingId === m.id ? "bg-blue-50/40 dark:bg-blue-500/10" : "hover:bg-gray-50 dark:hover:bg-white/5"}`}
                     >
-                      <td className="p-3 align-top text-gray-600 dark:text-gray-300">{new Date(m.fecha).toLocaleString()}</td>
+                      <td className="p-3 align-top text-gray-600 dark:text-gray-300">
+                        {new Date(m.fecha).toLocaleString('es-ES', { 
+                          day: '2-digit', 
+                          month: '2-digit', 
+                          year: 'numeric', 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </td>
                       <td className="p-3 align-top capitalize font-medium text-gray-800 dark:text-gray-100">{m.tipo}</td>
                       <td className="p-3 align-top text-gray-600 dark:text-gray-300">{m.descripcion || "—"}</td>
                       <td className="p-3 align-top text-right font-semibold text-gray-900 dark:text-gray-100">${Number(m.monto).toLocaleString()}</td>
@@ -421,7 +429,15 @@ export default function Page() {
                 <li key={m.id} className={`rounded-2xl bg-white dark:bg-gray-900/60 shadow border border-gray-100 dark:border-white/10 p-4 ${editingId === m.id ? "ring-2 ring-blue-200 dark:ring-blue-400/30" : ""}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(m.fecha).toLocaleString()}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(m.fecha).toLocaleString('es-ES', { 
+                          day: '2-digit', 
+                          month: '2-digit', 
+                          year: 'numeric', 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
                       <div className="mt-0.5 capitalize font-medium text-gray-800 dark:text-gray-100">{m.tipo}</div>
                       <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">{m.descripcion || "—"}</div>
                     </div>

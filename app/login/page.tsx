@@ -29,7 +29,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-6">
       <div className="w-full max-w-sm text-center">
-        <h1 className="text-4xl font-light tracking-tight text-gray-900">Flip Cam</h1>
+        <h1 className="text-4xl font-light tracking-tight text-gray-900">South Sensor Cams</h1>
         <p className="text-sm text-gray-400 mt-1">Adrian & Diego</p>
 
         <form onSubmit={signIn} className="mt-8 space-y-3">

@@ -226,7 +226,7 @@ export default function Page() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="text-3xl md:text-4xl font-extralight text-gray-900 dark:text-white">Inventario</h1>
-              <p className="mt-1 text-gray-500 dark:text-gray-400">Gestiona tus cámaras y productos — FlipCams</p>
+              <p className="mt-1 text-gray-500 dark:text-gray-400">Gestiona tus cámaras y productos — South Sensor Cams</p>
             </div>
             <UserHeader />
           </div>
