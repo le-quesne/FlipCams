@@ -19,28 +19,82 @@ type KpiData = {
   caja_actual?: number;
   capital?: number;
   utilidad?: number;
+  roi?: number;
+  roi_proyectado?: number;
+  cash_proyectado?: number;
+  utilidad_proyectada?: number;
+  inversion_en_inventario?: number;
 };
 
 function KpiCards({ data }: { data: KpiData | null }) {
   if (!data) return null;
   const f = (n: number | undefined) => Number(n || 0).toLocaleString();
+  const fp = (n: number | undefined) => Number(n || 0).toFixed(1);
 
   return (
-    <div className="grid sm:grid-cols-3 gap-4 mb-6">
-      {[
-        { label: "Caja", value: data.caja_actual },
-        { label: "Capital", value: data.capital },
-        { label: "Utilidad", value: data.utilidad },
-      ].map((it) => (
-        <div
-          key={it.label}
-          className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-md border border-white/30 dark:border-white/10 p-5 shadow-lg"
-        >
-          <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{it.label}</div>
-          <div className="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">${f(it.value)}</div>
-          <div className="absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br from-blue-200/30 dark:from-blue-400/10 to-transparent rounded-full opacity-60 pointer-events-none" />
+    <div className="space-y-4 mb-6">
+      {/* KPIs actuales */}
+      <div className="grid sm:grid-cols-4 gap-4">
+        {[
+          { label: "Caja", value: data.caja_actual, prefix: "$", color: "blue" },
+          { label: "Capital", value: data.capital, prefix: "$", color: "purple" },
+          { label: "Utilidad", value: data.utilidad, prefix: "$", color: "green" },
+          { label: "ROI", value: data.roi, suffix: "%", color: "orange", isPercent: true },
+        ].map((it) => (
+          <div
+            key={it.label}
+            className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-md border border-white/30 dark:border-white/10 p-5 shadow-lg"
+          >
+            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{it.label}</div>
+            <div className="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">
+              {it.prefix}{it.isPercent ? fp(it.value) : f(it.value)}{it.suffix}
+            </div>
+            <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br from-${it.color}-200/30 dark:from-${it.color}-400/10 to-transparent rounded-full opacity-60 pointer-events-none`} />
+          </div>
+        ))}
+      </div>
+
+      {/* KPIs proyectados */}
+      <div className="grid sm:grid-cols-3 gap-4">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 border border-cyan-200 dark:border-cyan-500/20 p-5 shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            <div className="text-xs text-cyan-700 dark:text-cyan-300 uppercase tracking-wide font-medium">Cash Proyectado</div>
+          </div>
+          <div className="text-2xl font-extrabold text-cyan-900 dark:text-cyan-100">${f(data.cash_proyectado)}</div>
+          <div className="mt-1 text-xs text-cyan-600 dark:text-cyan-400">
+            Si se venden todos los items
+          </div>
         </div>
-      ))}
+
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-500/20 p-5 shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="text-xs text-emerald-700 dark:text-emerald-300 uppercase tracking-wide font-medium">Utilidad Proyectada</div>
+          </div>
+          <div className="text-2xl font-extrabold text-emerald-900 dark:text-emerald-100">${f(data.utilidad_proyectada)}</div>
+          <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+            Ganancia estimada total
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-500/20 p-5 shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <div className="text-xs text-amber-700 dark:text-amber-300 uppercase tracking-wide font-medium">ROI Proyectado</div>
+          </div>
+          <div className="text-2xl font-extrabold text-amber-900 dark:text-amber-100">{fp(data.roi_proyectado)}%</div>
+          <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+            Retorno sobre inversión
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
