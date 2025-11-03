@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import Nav from "@/components/Nav";
+import ProtectedPage from "@/components/ProtectedPage";
+import UserHeader from "@/components/UserHeader";
 
 type Movimiento = {
   id: string;
@@ -45,39 +47,13 @@ const INITIAL_FORM = { tipo: "compra", monto: "", descripcion: "" };
 
 export default function Page() {
   const router = useRouter();
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [items, setItems] = useState<Movimiento[]>([]);
   const [form, setForm] = useState({ ...INITIAL_FORM });
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [kpi, setKpi] = useState<KpiData | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ tipo: "compra", monto: "", descripcion: "" });
   const [editRecord, setEditRecord] = useState<Movimiento | null>(null);
-
-  // Auto-aplica modo oscuro si el sistema lo prefiere (útil si Tailwind está configurado con 'class')
-  useEffect(() => {
-    try {
-      const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-      if (!mq) return;
-      const root = document.documentElement;
-      const apply = () => {
-        if (mq.matches) root.classList.add('dark');
-        else root.classList.remove('dark');
-      };
-      apply();
-      if (mq.addEventListener) mq.addEventListener('change', apply);
-      else if ((mq as any).addListener) (mq as any).addListener(apply);
-      return () => {
-        if (mq.removeEventListener) mq.removeEventListener('change', apply);
-        else if ((mq as any).removeListener) (mq as any).removeListener(apply);
-      };
-    } catch (e) {
-      // no-op
-    }
-  }, []);
 
   const load = async () => {
     try {
@@ -114,37 +90,8 @@ export default function Page() {
   };
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData?.user) {
-          setLoggedIn(false);
-          setUserEmail(null);
-          router.replace("/login");
-          return;
-        }
-        setLoggedIn(true);
-        setUserEmail(userData.user.email ?? userData.user.id);
-        await refreshData();
-      } catch (e) {
-        setLoggedIn(false);
-        router.replace("/login");
-      } finally {
-        setCheckingAuth(false);
-      }
-    }
-    checkAuth();
-  }, [router, supabase]);
-
-  async function signOut() {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.error(e);
-    }
-    router.replace("/login");
-    router.refresh();
-  }
+    refreshData();
+  }, []);
 
   async function submit(e: any) {
     e.preventDefault();
@@ -240,38 +187,19 @@ export default function Page() {
     await refreshData();
   }
 
-  if (checkingAuth) return null;
-
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <header className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-extralight text-gray-900 dark:text-white">Finanzas</h1>
-            <p className="mt-1 text-gray-500 dark:text-gray-400">Controla la caja y los movimientos — FlipCams</p>
+    <ProtectedPage>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <Nav />
+        <header className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-extralight text-gray-900 dark:text-white">Finanzas</h1>
+              <p className="mt-1 text-gray-500 dark:text-gray-400">Controla la caja y los movimientos — FlipCams</p>
+            </div>
+            <UserHeader />
           </div>
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
-                loggedIn ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300"
-              }`}
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${loggedIn ? "bg-green-500" : "bg-red-500"}`}
-              />
-              {loggedIn ? userEmail || "Autenticado" : "No autenticado"}
-            </span>
-            {loggedIn ? (
-              <button
-                onClick={signOut}
-                className="rounded-full border border-gray-200 dark:border-white/10 px-3 py-1 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5"
-              >
-                Salir
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </header>
+        </header>
 
   <KpiCards data={kpi} />
 
@@ -505,7 +433,8 @@ export default function Page() {
           </div>
         </form>
       </Modal>
-    </div>
+      </div>
+    </ProtectedPage>
   );
 }
 
