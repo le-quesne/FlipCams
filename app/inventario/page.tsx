@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
 import Nav from "@/components/Nav";
 import ProtectedPage from "@/components/ProtectedPage";
 import UserHeader from "@/components/UserHeader";
@@ -180,11 +181,64 @@ export default function Page() {
       setToast({ message: err.error || "Error al guardar cambios", type: "error" });
       return;
     }
+    
+    // 🎉 Detectar si se realizó una venta y lanzar confeti
+    const isNewSale = payload.estado === 'vendido' && editRecord?.estado !== 'vendido';
+    if (isNewSale) {
+      // Obtener posición del botón de guardar
+      const submitBtn = document.querySelector('button[type="submit"]');
+      const rect = submitBtn?.getBoundingClientRect();
+      
+      // Calcular origen del confeti basado en la posición del botón
+      const x = rect ? (rect.left + rect.width / 2) / window.innerWidth : 0.5;
+      const y = rect ? (rect.top + rect.height / 2) / window.innerHeight : 0.5;
+
+      // Explosión de confeti roja desde el botón
+      const count = 200;
+      const defaults = {
+        origin: { x, y },
+        colors: ['#dc2626', '#9918a4ff', '#f87171', '#147626ff', '#324f48ff'],
+        zIndex: 9999
+      };
+
+      function fire(particleRatio: number, opts: any) {
+        confetti({
+          ...defaults,
+          ...opts,
+          particleCount: Math.floor(count * particleRatio)
+        });
+      }
+
+      // Múltiples explosiones con diferentes configuraciones
+      fire(0.25, {
+        spread: 26,
+        startVelocity: 55,
+      });
+      fire(0.2, {
+        spread: 60,
+      });
+      fire(0.35, {
+        spread: 100,
+        decay: 0.91,
+        scalar: 0.8
+      });
+      fire(0.1, {
+        spread: 120,
+        startVelocity: 25,
+        decay: 0.92,
+        scalar: 1.2
+      });
+      fire(0.1, {
+        spread: 120,
+        startVelocity: 45,
+      });
+    }
+    
     setEditOpen(false);
     setEditingId(null);
     setEditRecord(null);
     await load();
-    setToast({ message: "Cambios guardados exitosamente", type: "success" });
+    setToast({ message: isNewSale ? "🎉 ¡Venta realizada exitosamente!" : "Cambios guardados exitosamente", type: "success" });
   }
 
   async function deleteItem() {
@@ -651,6 +705,7 @@ export default function Page() {
               </button>
               <button
                 type="submit"
+                id="save-changes-btn"
                 className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md text-sm"
               >
                 Guardar cambios
